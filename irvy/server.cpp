@@ -28,7 +28,7 @@ Mat frame = Mat(480, 640, CV_8UC3);
 vector<uchar> frameVec;
 Mat grayframe;
 
-const int port = 4789
+const int port = 4789;
 
 int main()
 {
