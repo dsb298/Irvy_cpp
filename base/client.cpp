@@ -19,6 +19,7 @@ using namespace std::chrono;
 using namespace std;
 using namespace cv;
 
+// IP address of raspberry pi
 const string ip_addr = "192.168.1.162";
 const int port = 4789;
 
