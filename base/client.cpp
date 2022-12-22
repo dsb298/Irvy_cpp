@@ -117,7 +117,7 @@ void commander()
         try {
             // Resolve the server address and port
             tcp::resolver resolver(io_context);
-            auto endpoints = resolver.resolve(ip_addr, to_string(port));
+            auto endpoints = resolver.resolve(ip_addr, to_string(port+1));
 
             // Attempt to connect to the server
             boost::asio::connect(socket, endpoints);
