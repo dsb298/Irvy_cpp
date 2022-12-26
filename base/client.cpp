@@ -10,14 +10,15 @@
 #include <ncurses.h>
 #include <unistd.h>
 
-void display();
-void commander();
-
 using boost::asio::ip::tcp;
 using namespace boost::asio;
 using namespace std::chrono;
 using namespace std;
 using namespace cv;
+
+static void visualize(Mat& input, int frame, Mat& faces, double fps, int thickness);
+void display();
+void commander();
 
 // IP address of raspberry pi
 const string ip_addr = "192.168.1.162";
@@ -54,6 +55,43 @@ void display()
 
     cout << "Connected to Display!" << endl;
 
+    // FaceDetector -----------------------------------------------
+
+    // Face detection model: https://github.com/opencv/opencv_zoo/tree/master/models/face_detection_yunet
+    String fd_modelPath = "/home/devli/Documents/models/face_detection_yunet_2022mar.onnx";
+
+    // Face recognition model: https://github.com/opencv/opencv_zoo/tree/master/models/face_recognition_sface
+    String fr_modelPath = "/home/devli/Documents/models/face_recognition_sface_2021dec.onnx";
+
+    // Threshold must be 0-1. scoreThreshold > score means a face is recognized
+    float scoreThreshold = .9;
+
+    // Suppress bounding boxes of iou >= nms_threshold -- idk what this means
+    float nmsThreshold = .3;
+
+    // Keep top_k bounding boxes before NMS -- idk what this means
+    int topK = 5000;
+
+    // Scale to resize video frames
+    float scale = 1.0;
+
+    // No clue
+    double cosine_similar_thresh = 0.363;
+    double l2norm_similar_thresh = 1.128;
+
+    // Initialize FaceDetectorYN
+    Ptr<FaceDetectorYN> detector = FaceDetectorYN::create(fd_modelPath, "", Size(320, 320), scoreThreshold, nmsThreshold, topK);
+
+    int frameWidth = int(640 * scale);
+    int frameHeight = int(480 * scale);
+
+    detector->setInputSize(Size(frameWidth, frameHeight));
+
+    Mat faces;
+    TickMeter tm;
+
+    // -------------------------------------------------
+
     // Set up the video window and text data
     namedWindow("Irvy's View", cv::WINDOW_AUTOSIZE);
     string fps_text = "FPS: ";
@@ -63,9 +101,11 @@ void display()
     int cur_fps;
 
     // Loop to get and display frames
+    int cntr = 0;
     int run = 1;
+    int nFrame = 0;
     while(run){
-        auto start = high_resolution_clock::now();
+        // auto start = high_resolution_clock::now();
 
         // Get frame size and create frameArr buffer of this size
         read(socket, buffer(frameSize, 4));
@@ -76,20 +116,29 @@ void display()
         Mat frame = imdecode(Mat(1, frameSize[0], CV_8UC1, frameArr), -1);
 
         // Display image along with fps
-        if(frame_time!=0){
-            cur_fps = 1000/frame_time;
-            fps_text = "FPS: " + to_string(cur_fps);
-        }
-        putText(frame, fps_text, Point(10, 20), FONT_HERSHEY_SIMPLEX, .6, Scalar(0, 255, 255), 2);
-        imshow("Irvy's View", frame);
-        char c = waitKey(1000/fps);
-        if(c == 27){
+        tm.start();
+        detector->detect(frame, faces);
+        tm.stop();
+
+        Mat result = frame.clone();
+        // Draw results on the input image
+        visualize(result, nFrame, faces, tm.getFPS(), 2);
+
+        imshow("Irvy's view", result);
+        int key = waitKey(1);
+        if(key == 27){
             destroyAllWindows();
-            run = 0;
+            break;
         }
-        auto end = high_resolution_clock::now();
-        auto elapsed = end - start;
-        frame_time = duration_cast<milliseconds>(elapsed).count();
+
+        ++nFrame;
+
+        // auto end = high_resolution_clock::now();
+        // auto elapsed = end - start;
+        // frame_time = duration_cast<milliseconds>(elapsed).count();
+        // cntr++;
+        // cout << "Frame: " << cntr << endl;
+        // cout << "Elapsed Time: " << frame_time << endl;
     }
 }
 
@@ -154,4 +203,14 @@ void commander()
             run = 0;
     }
     endwin();
+}
+
+static void visualize(Mat& input, int frame, Mat& faces, double fps, int thickness)
+{
+    std::string fpsString = cv::format("FPS : %.2f", (float)fps);
+    for (int i = 0; i < faces.rows; i++) {
+        // Draw bounding box
+        rectangle(input, Rect2i(int(faces.at<float>(i, 0)), int(faces.at<float>(i, 1)), int(faces.at<float>(i, 2)), int(faces.at<float>(i, 3))), Scalar(0, 255, 0), thickness);
+    }
+    putText(input, fpsString, Point(0, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0), 2);
 }
