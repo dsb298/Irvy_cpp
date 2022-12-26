@@ -69,8 +69,12 @@ void stream()
 
     // send video frame by frame
     cout << "Video stream starting." << endl;
+    int cntr = 0;
     int run = 1;
     while(run){
+
+        auto start = high_resolution_clock::now();
+
         // Take picture
         vid >> frame;
         // cvtColor(img, grayframe, 6);
@@ -87,6 +91,13 @@ void stream()
 
         // Send frame data as jpeg
         write(socket, buffer(frameVec.data(), frameVec.size()));
+
+        auto end = high_resolution_clock::now();
+        auto elapsed = end - start;
+        auto frame_time = duration_cast<milliseconds>(elapsed).count();
+        cntr++;
+        cout << "Frame: " << cntr << endl;
+        cout << "Elapsed Time: " << frame_time << endl;
     }
 }
 
