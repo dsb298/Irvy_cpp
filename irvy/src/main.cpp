@@ -25,11 +25,6 @@ void stream(TcpServer&);
 // void right(int);
 // void stop();
 
-// VideoCapture vid(0);
-// Mat frame = Mat(480, 640, CV_8UC3);
-// vector<uchar> frameVec;
-// Mat grayframe;
-
 const int port = 4789;
 
 int main()
@@ -49,20 +44,6 @@ int main()
 
 void stream(TcpServer& tcpCam)
 {
-    // // // Create a server endpoint
-    // io_context service;
-    // ip::tcp::endpoint endpoint(ip::tcp::v4(), port);
-
-    // // // Create a socket and bind it to the endpoint
-    // ip::tcp::acceptor acceptor(service, endpoint);
-
-    // cout << "Waiting for laptop..." << endl;
-
-    // // Wait for a client to connect
-    // ip::tcp::socket socket(service);
-    // acceptor.accept(socket);
-
-    // cout << "Connected to laptop!" << endl;
 
     vector<int> params = {cv::IMWRITE_JPEG_QUALITY, 50};
     // boost::system::error_code error;
@@ -84,37 +65,21 @@ void stream(TcpServer& tcpCam)
 
         // Take picture
         vid >> frame;
-        resize(frame, frame, Size(640,480));
 
-        auto end = high_resolution_clock::now();
         // cvtColor(img, grayframe, 6);
-
-        // imshow("frame",frame);
-        // if(waitKey(20)==27){
-        //     destroyAllWindows();
-        //     run = false;
-        // }
 
         // Encode picture to jpeg
         cv::imencode(".jpg", frame, frameJpg, params);
         // cv::imencode(".jpg", grayframe, imgVec, params);
 
-        // Get frame size after encoding to jpeg. Need to put this in buffer to send
-        // frameSize[0] = static_cast<size_t>(frameVec.size());
-
-        // Send frame size first
-        // write(socket, buffer(frameVecSize.data(), sizeof(int)));
+        // Send jpg
         tcpCam.send_frame(frameJpg);
 
-        // Send frame data as jpeg
-        // write(socket, buffer(frameVec.data(), frameVec.size()));
-        // tcpCam.send(frameVec.data());
-
-        // auto end = high_resolution_clock::now();
+        auto end = high_resolution_clock::now();
         auto elapsed = end - start;
         auto frame_time = duration_cast<milliseconds>(elapsed).count();
         cntr++;
-        // cout << "Frame: " << cntr << endl;
+        cout << "Frame: " << cntr << endl;
         cout << "Elapsed Time: " << frame_time << endl;
     }
     vid.release();
