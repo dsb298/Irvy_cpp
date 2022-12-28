@@ -21,8 +21,8 @@ void display(TcpClient&);
 void commander();
 
 // IP address of raspberry pi
-// const string ip_addr = "192.168.1.162";
-const string ip_addr = "127.0.0.1";
+const string ip_addr = "192.168.1.162";
+// const string ip_addr = "127.0.0.1";
 const int port = 4789;
 
 int main()
@@ -100,37 +100,22 @@ void display(TcpClient& tcpCam)
     while(run){
         auto start = high_resolution_clock::now();
 
-        // Get frame size and create frameArr buffer of this size
-        // read(socket, buffer(frameSize, 4));
+        // Get frame size and frame jpg data from pi, decode to opencv mat
         tcpCam.rcv(frameSize, 2);
-
-        auto end = high_resolution_clock::now();
-        
-        // boost::asio::read(tcpCam.socket, boost::asio::buffer(frameSize, 2));
         uchar frameJpg[frameSize[0]];
-        // boost::asio::read(tcpCam.socket, boost::asio::buffer(frameJpg, frameSize[0]));
         tcpCam.rcv(frameJpg, frameSize[0]);
-
-        // cout << frameSize[0] << endl;
-        // cout.write(frameSize,5);
-
-        // uchar frameJpg[frameSize[0]];
-
-        // Get entire image data compressed as jpeg, decode into cv::Mat
-        // read(socket, buffer((frameArr), frameSize[0]));
-        // tcpCam.rcv(frameArr, frameSize[0]);
         Mat frame = imdecode(Mat(1, frameSize[0], CV_8UC1, frameJpg), -1);
 
-        // // Display image along with fps
-        // tm.start();
-        // detector->detect(frame, faces);
-        // tm.stop();
+        // Display image along with fps
+        tm.start();
+        detector->detect(frame, faces);
+        tm.stop();
 
-        // Mat result = frame.clone();
-        // // Draw results on the input image
-        // visualize(result, nFrame, faces, tm.getFPS(), 2);
+        Mat result = frame.clone();
+        // Draw results on the input image
+        visualize(result, nFrame, faces, tm.getFPS(), 2);
 
-        imshow("Irvy's view", frame);//result);
+        imshow("Irvy's view", result);
         int key = waitKey(1);
         if(key == 27){
             destroyAllWindows();
@@ -138,8 +123,7 @@ void display(TcpClient& tcpCam)
         }
 
         ++nFrame;
-
-        // auto end = high_resolution_clock::now();
+        auto end = high_resolution_clock::now();
         auto elapsed = end - start;
         frame_time = duration_cast<milliseconds>(elapsed).count();
         cntr++;
